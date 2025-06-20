@@ -28,8 +28,8 @@ TaskFlow AI is a modern, AI-powered task management application built with React
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/taskflow-ai.git
-   cd taskflow-ai
+   git clone https://github.com/Deviskalo/taskflow_ai.git
+   cd taskflow_ai
    ```
 
 2. Install dependencies:
@@ -91,7 +91,6 @@ yarn preview
 
 ```
 src/
-├── assets/          # Static assets
 ├── components/       # Reusable UI components
 ├── config/          # Configuration files
 ├── contexts/        # React contexts
@@ -103,6 +102,7 @@ src/
 ├── styles/          # Global styles
 ├── types/           # TypeScript type definitions
 └── utils/           # Utility functions
+public/          # Static assets
 ```
 
 ## 🤝 Contributing
@@ -121,9 +121,9 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 📧 Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_twitter) - your.email@example.com
+Dev Iskalo - [@dev_iskalo](https://twitter.com/@dev_iskalo) - deviskalo2000@gmail.com
 
-Project Link: [https://github.com/yourusername/taskflow-ai](https://github.com/yourusername/taskflow-ai)
+Project Link: [https://github.com/Deviskalo/taskflow_ai](https://github.com/Deviskalo/taskflow_ai)
 
 ## 🙏 Acknowledgments
 
