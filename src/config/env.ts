@@ -1,0 +1,78 @@
+interface Env {
+  // Required environment variables
+  VITE_APP_NAME: string;
+  VITE_APP_VERSION: string;
+  VITE_API_BASE_URL: string;
+  
+  // Optional with defaults
+  VITE_SENTRY_DSN?: string;
+  VITE_ENABLE_ANALYTICS?: string;
+  VITE_DEBUG_MODE?: string;
+  
+  // Feature flags
+  VITE_FEATURE_NOTIFICATIONS?: string;
+  VITE_FEATURE_OFFLINE?: string;
+}
+
+// Type-safe environment variables access
+export const env: Env = {
+  // Required
+  VITE_APP_NAME: import.meta.env.VITE_APP_NAME || 'TaskFlow AI',
+  VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION || '0.0.0',
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api',
+  
+  // Optional with defaults
+  VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
+  VITE_ENABLE_ANALYTICS: import.meta.env.VITE_ENABLE_ANALYTICS || 'false',
+  VITE_DEBUG_MODE: import.meta.env.VITE_DEBUG_MODE || 'false',
+  
+  // Feature flags
+  VITE_FEATURE_NOTIFICATIONS: import.meta.env.VITE_FEATURE_NOTIFICATIONS || 'true',
+  VITE_FEATURE_OFFLINE: import.meta.env.VITE_FEATURE_OFFLINE || 'false',
+};
+
+// Runtime validation of required environment variables
+export function validateEnv() {
+  const requiredVars: (keyof Env)[] = [
+    'VITE_APP_NAME',
+    'VITE_APP_VERSION',
+    'VITE_API_BASE_URL',
+  ];
+
+  const missingVars = requiredVars.filter(
+    (key) => !import.meta.env[key] && !env[key]
+  );
+
+  if (missingVars.length > 0) {
+    const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
+    if (import.meta.env.PROD) {
+      console.error(errorMessage);
+    } else {
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Log environment in development
+  if (import.meta.env.DEV) {
+    console.log('Environment variables:', {
+      ...env,
+      // Don't log sensitive values in development
+      VITE_SENTRY_DSN: env.VITE_SENTRY_DSN ? '***' : undefined,
+    });
+  }
+}
+
+// Helper functions for type-safe environment access
+export const isFeatureEnabled = (feature: keyof Env): boolean => {
+  const value = env[feature];
+  return value === 'true' || value === '1';
+};
+
+export const isDebugMode = (): boolean => {
+  return env.VITE_DEBUG_MODE === 'true' || !import.meta.env.PROD;
+};
+
+// Call validate on import if we're in the browser
+if (typeof window !== 'undefined') {
+  validateEnv();
+}
