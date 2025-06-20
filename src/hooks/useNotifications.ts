@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Task } from '../types/Task';
 
 interface Notification {
@@ -8,7 +8,7 @@ interface Notification {
   type: 'info' | 'warning' | 'error' | 'success';
   timestamp: Date;
   taskId?: string;
-  persistent?: boolean; // New field to mark persistent notifications
+  persistent?: boolean;
 }
 
 export const useNotifications = (tasks: Task[]) => {
@@ -51,12 +51,7 @@ export const useNotifications = (tasks: Task[]) => {
     }
   }, []);
 
-  // Check due dates when tasks change
-  useEffect(() => {
-    checkDueDates(tasks);
-  }, [tasks]);
-
-  const requestPermission = async () => {
+  const requestPermission = useCallback(async () => {
     if ('Notification' in window) {
       const permission = await Notification.requestPermission();
       setNotificationsEnabled(permission === 'granted');
@@ -67,73 +62,103 @@ export const useNotifications = (tasks: Task[]) => {
           title: 'Notifications Enabled',
           message: 'You will now receive alerts for due dates and overdue tasks',
           type: 'success',
-          persistent: false // This one can auto-disappear
+          persistent: false
         });
       }
     }
-  };
+  }, []);
 
-  const dismissNotificationBanner = () => {
+  const dismissNotificationBanner = useCallback(() => {
     setShowNotificationBanner(false);
-  };
+  }, []);
 
-  const addNotification = (notification: Omit<Notification, 'id' | 'timestamp'> & { persistent?: boolean }) => {
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([]);
+    localStorage.removeItem('taskflow_notifications');
+  }, []);
+
+  const showBrowserNotification = useCallback((title: string, options: NotificationOptions & { tag?: string }) => {
+    if (!notificationsEnabled) return;
+
+    // Try service worker first if available
+    if ('serviceWorker' in navigator && 'Notification' in window) {
+      navigator.serviceWorker.ready
+        .then(registration => {
+          return registration.showNotification(title, options);
+        })
+        .catch(error => {
+          console.error('Error showing service worker notification:', error);
+          // Fallback to regular notification if service worker fails
+          if (Notification.permission === 'granted') {
+            new Notification(title, options);
+          }
+        });
+    } 
+    // Fallback to regular notification if service worker not available
+    else if (Notification.permission === 'granted') {
+      new Notification(title, options);
+    }
+  }, [notificationsEnabled]);
+
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'> & { persistent?: boolean }) => {
     const newNotification: Notification = {
       ...notification,
       id: Math.random().toString(36).substr(2, 9),
       timestamp: new Date(),
       persistent: notification.persistent !== false // Default to persistent unless explicitly set to false
     };
-    
-    // Check if we already have a similar notification for this task
-    const existingNotification = notifications.find(n => 
-      n.taskId === newNotification.taskId && 
-      n.type === newNotification.type &&
-      n.title === newNotification.title
-    );
 
-    if (existingNotification) {
-      // Update existing notification instead of creating duplicate
-      setNotifications(prev => prev.map(n => 
-        n.id === existingNotification.id 
-          ? { ...newNotification, id: existingNotification.id }
-          : n
-      ));
-    } else {
+    setNotifications(prev => {
+      // Check if we already have a similar notification for this task
+      const existingNotification = prev.find(n => 
+        n.taskId === newNotification.taskId && 
+        n.type === newNotification.type &&
+        n.title === newNotification.title
+      );
+
+      if (existingNotification) {
+        // Update existing notification instead of creating duplicate
+        return prev.map(n => 
+          n.id === existingNotification.id 
+            ? { ...newNotification, id: existingNotification.id }
+            : n
+        );
+      }
+      
       // Add new notification
-      setNotifications(prev => [newNotification, ...prev]);
-    }
-    
+      return [newNotification, ...prev];
+    });
+
     // Show browser notification if enabled
-    if (notificationsEnabled && 'Notification' in window) {
-      new Notification(notification.title, {
+    if (notificationsEnabled) {
+      const notificationOptions: NotificationOptions & { tag?: string } = {
         body: notification.message,
         icon: '/vite.svg',
-        tag: notification.taskId || 'general'
-      });
+        tag: notification.taskId || 'general',
+        data: {
+          taskId: notification.taskId
+        }
+      };
+
+      showBrowserNotification(notification.title, notificationOptions);
     }
-    
+
     // Only auto-remove non-persistent notifications
     if (!newNotification.persistent) {
       setTimeout(() => {
         removeNotification(newNotification.id);
       }, 5000);
     }
-  };
+  }, [notificationsEnabled, removeNotification, showBrowserNotification]);
 
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  const clearAllNotifications = () => {
-    setNotifications([]);
-    localStorage.removeItem('taskflow_notifications');
-  };
-
-  const checkDueDates = (tasks: Task[]) => {
+  const checkDueDates = useCallback((tasksToCheck: Task[]) => {
     const now = new Date();
 
-    tasks.forEach(task => {
+    tasksToCheck.forEach(task => {
       if (task.status === 'completed') return;
 
       // Create the full due date/time
@@ -151,7 +176,7 @@ export const useNotifications = (tasks: Task[]) => {
       const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
 
       // Create a unique key for this notification check (daily basis for persistent notifications)
-      const notificationKey = `${task.id}-${Math.floor(now.getTime() / (1000 * 60 * 60 * 24))}`; // Check daily
+      const notificationKey = `${task.id}-${Math.floor(now.getTime() / (1000 * 60 * 60 * 24))}`;
       const lastNotified = localStorage.getItem(`notification_${notificationKey}`);
       
       // For persistent notifications, only check once per day per task
@@ -166,8 +191,8 @@ export const useNotifications = (tasks: Task[]) => {
         }
       }
 
-      let shouldNotify = false;
       let notificationData: Omit<Notification, 'id' | 'timestamp'> & { persistent?: boolean } | null = null;
+      let shouldNotify = false;
 
       if (timeDiff < 0) {
         // Overdue
@@ -237,13 +262,22 @@ export const useNotifications = (tasks: Task[]) => {
         localStorage.setItem(`notification_${notificationKey}`, now.toISOString());
       }
     });
-  };
+  }, [addNotification]);
+
+  // Check due dates when tasks change
+  useEffect(() => {
+    if (tasks.length > 0) {
+      checkDueDates(tasks);
+    }
+  }, [tasks, checkDueDates]);
 
   // Clean up notifications for completed tasks
   useEffect(() => {
-    const completedTaskIds = tasks.filter(t => t.status === 'completed').map(t => t.id);
-    if (completedTaskIds.length > 0) {
-      setNotifications(prev => prev.filter(n => !n.taskId || !completedTaskIds.includes(n.taskId)));
+    if (tasks.length > 0) {
+      const completedTaskIds = tasks.filter(t => t.status === 'completed').map(t => t.id);
+      if (completedTaskIds.length > 0) {
+        setNotifications(prev => prev.filter(n => !n.taskId || !completedTaskIds.includes(n.taskId)));
+      }
     }
   }, [tasks]);
 
@@ -251,11 +285,12 @@ export const useNotifications = (tasks: Task[]) => {
   useEffect(() => {
     if (tasks.length > 0) {
       // Small delay to ensure component is mounted
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         checkDueDates(tasks);
       }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [tasks, checkDueDates]);
 
   return {
     notifications,
