@@ -1,5 +1,5 @@
 /** @type {import('jest').Config} */
-module.exports = {
+const config = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^\.(css|less|sass|scss)$': 'identity-obj-proxy',
@@ -35,7 +35,6 @@ module.exports = {
               useESModules: false,
               helpers: true,
               regenerator: true,
-              corejs: 3,
             },
           ],
         ],
@@ -52,6 +51,7 @@ module.exports = {
   ],
   extensionsToTreatAsEsm: ['.ts', '.tsx', '.jsx'],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'mjs', 'json', 'node'],
+  testRunner: 'jest-jasmine2',
   testEnvironmentOptions: {
     url: 'http://localhost/',
   },
@@ -64,3 +64,5 @@ module.exports = {
     },
   },
 };
+
+export default config;
