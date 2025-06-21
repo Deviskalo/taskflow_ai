@@ -20,60 +20,97 @@ type FeatureFlagValue = string | boolean | number;
 
 // Helper function to check if a feature is enabled
 export function isFeatureEnabled(feature: string): boolean {
-  const value = (env as any)[`VITE_FEATURE_${feature}`];
-  return value === 'true' || value === true || value === '1';
+  const envVarName = `VITE_FEATURE_${feature}` as const;
+  const envValue = env[envVarName as keyof typeof env];
+  return envValue === 'true' || envValue === true || envValue === '1';
 }
 
 // Helper function to get feature flag value with type safety
-export function getFeatureFlag<T extends FeatureFlagValue>(
-  flag: string,
-  defaultValue: T
-): T {
-  try {
-    // Try to get from environment variables first
-    const envValue = (env as any)[`VITE_FEATURE_${flag}`];
-    if (envValue !== undefined) {
-      return envValue as T;
+export function getFeatureFlag<T>(flagName: string, defaultValue: T): T {
+  // Check environment variables first (VITE_FEATURE_*)
+  const envVarName = `VITE_FEATURE_${flagName}` as const;
+  const envValue = env[envVarName as keyof typeof env];
+  
+  // Handle environment variable value if set
+  if (typeof envValue !== 'undefined') {
+    // Convert string 'true'/'false' to boolean if needed
+    if (envValue === 'true') return true as T;
+    if (envValue === 'false') return false as T;
+    // Try to parse as JSON if it looks like JSON
+    if (typeof envValue === 'string' && (envValue.startsWith('{') || envValue.startsWith('[') || envValue.startsWith('"'))) {
+      try {
+        return JSON.parse(envValue) as T;
+      } catch (e) {
+        console.warn(`Failed to parse feature flag ${flagName} from env`, e);
+      }
     }
-    
-    // Then try localStorage
-    if (typeof window !== 'undefined') {
-      const storedValue = localStorage.getItem(`feature_${flag}`);
+    return envValue as T;
+  }
+  
+  // Check localStorage if available
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const storedValue = localStorage.getItem(`feature_${flagName}`);
       if (storedValue !== null) {
+        // Handle boolean strings without JSON parsing
+        if (storedValue === 'true') return true as T;
+        if (storedValue === 'false') return false as T;
+        // Handle number strings
+        if (/^\d+$/.test(storedValue)) return Number(storedValue) as T;
+        // Try to parse as JSON
         try {
           return JSON.parse(storedValue) as T;
         } catch (e) {
-          console.warn(`Failed to parse feature flag ${flag} from localStorage`, e);
+          // If parsing fails, return default value
+          console.warn(`Failed to parse feature flag ${flagName} from localStorage`, e);
+          return defaultValue;
         }
       }
+    } catch (e) {
+      console.warn(`Failed to get feature flag ${flagName} from localStorage`, e);
     }
-    
-    return defaultValue;
-  } catch (error) {
-    console.error(`Error getting feature flag ${flag}:`, error);
-    return defaultValue;
   }
+  
+  return defaultValue;
 }
 
 /**
- * Set a feature flag value (stored in localStorage)
- * @param flag The feature flag to set
+ * Sets a feature flag value in localStorage
+ * @param flagName The name of the flag to set
  * @param value The value to set
  */
-export function setFeatureFlag(flag: string, value: FeatureFlagValue): void {
+export function setFeatureFlag(flagName: string, value: unknown): void {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  
   try {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`feature_${flag}`, JSON.stringify(value));
-      
-      // Dispatch event that can be listened to elsewhere in the app
-      window.dispatchEvent(
-        new CustomEvent('featureFlagChanged', {
-          detail: { flag, value },
-        })
-      );
+    // Convert the value to a string representation
+    let stringValue: string;
+    if (typeof value === 'boolean' || typeof value === 'number') {
+      stringValue = String(value);
+    } else if (value === null || value === undefined) {
+      stringValue = 'null';
+    } else if (typeof value === 'string') {
+      // Stringify string values to handle them consistently
+      stringValue = JSON.stringify(value);
+    } else if (typeof value === 'object') {
+      stringValue = JSON.stringify(value);
+    } else {
+      stringValue = String(value);
     }
-  } catch (error) {
-    console.error(`Error setting feature flag ${flag}:`, error);
+    
+    // Store the value
+    localStorage.setItem(`feature_${flagName}`, stringValue);
+    
+    // Dispatch an event that the feature flag was updated
+    window.dispatchEvent(
+      new CustomEvent('featureFlagChanged', {
+        detail: { flag: flagName, value }
+      })
+    );
+  } catch (e) {
+    console.warn(`Failed to set feature flag ${flagName}`, e);
   }
 }
 

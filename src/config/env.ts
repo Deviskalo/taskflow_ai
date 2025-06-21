@@ -4,10 +4,16 @@ interface Env {
   VITE_APP_VERSION: string;
   VITE_API_BASE_URL: string;
   
+  // Environment modes
+  DEV: boolean;
+  PROD: boolean;
+  MODE: string;
+  
   // Optional with defaults
   VITE_SENTRY_DSN?: string;
   VITE_ENABLE_ANALYTICS?: string;
   VITE_DEBUG_MODE?: string;
+  VITE_ENVIRONMENT?: string;
   
   // Feature flags
   VITE_FEATURE_NOTIFICATIONS?: string;
@@ -16,6 +22,11 @@ interface Env {
 
 // Type-safe environment variables access
 export const env: Env = {
+  // Environment modes
+  DEV: import.meta.env.DEV || process.env.NODE_ENV === 'development',
+  PROD: import.meta.env.PROD || process.env.NODE_ENV === 'production',
+  MODE: import.meta.env.MODE || process.env.NODE_ENV || 'development',
+  
   // Required
   VITE_APP_NAME: import.meta.env.VITE_APP_NAME || 'TaskFlow AI',
   VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION || '0.0.0',
@@ -25,6 +36,7 @@ export const env: Env = {
   VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
   VITE_ENABLE_ANALYTICS: import.meta.env.VITE_ENABLE_ANALYTICS || 'false',
   VITE_DEBUG_MODE: import.meta.env.VITE_DEBUG_MODE || 'false',
+  VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT || 'development',
   
   // Feature flags
   VITE_FEATURE_NOTIFICATIONS: import.meta.env.VITE_FEATURE_NOTIFICATIONS || 'true',

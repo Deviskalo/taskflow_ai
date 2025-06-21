@@ -1,4 +1,5 @@
 import { captureMessage } from '../lib/sentry';
+import { env } from '../config/env';
 
 // Extend PerformanceEntry to include properties we need
 interface ExtendedPerformanceEntry extends PerformanceEntry {
@@ -21,7 +22,7 @@ class PerformanceMonitor {
   private sentryEnabled: boolean;
 
   private constructor() {
-    this.sentryEnabled = !!import.meta.env.VITE_SENTRY_DSN;
+    this.sentryEnabled = !!env.VITE_SENTRY_DSN;
   }
 
   public static getInstance(): PerformanceMonitor {
@@ -66,12 +67,12 @@ class PerformanceMonitor {
     const { name, value, tags = {} } = metric;
     
     // Log to console in development
-    if (import.meta.env.DEV) {
+    if (env.DEV) {
       console.log(`[Performance] ${name}:`, value, tags);
     }
 
     // Report to Sentry in production
-    if (this.sentryEnabled && import.meta.env.PROD) {
+    if (this.sentryEnabled && env.PROD) {
       // Format tags for the message
       const tagString = Object.entries({ ...tags, value, metric: name })
         .map(([key, val]) => `${key}=${val}`)

@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
 import { ErrorInfo } from 'react';
+import { env } from '../config/env';
 
-const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
+const SENTRY_DSN = env.VITE_SENTRY_DSN;
 
 // Only initialize Sentry in production and if DSN is provided
-if (import.meta.env.PROD && SENTRY_DSN) {
+if (env.PROD && SENTRY_DSN) {
   try {
     // Create a custom integration to avoid type issues
     const sentryIntegrations: Parameters<typeof Sentry.init>[0]['integrations'] = [];
@@ -43,8 +44,8 @@ if (import.meta.env.PROD && SENTRY_DSN) {
       // Add all integrations
       integrations: sentryIntegrations,
       // Release and environment
-      release: `taskflow-ai@${import.meta.env.VITE_APP_VERSION || '0.0.0'}`,
-      environment: import.meta.env.MODE,
+      release: `taskflow-ai@${env.VITE_APP_VERSION || '0.0.0'}`,
+      environment: env.MODE,
       // Additional configuration
       normalizeDepth: 5, // How deep to serialize the error objects
       sendDefaultPii: false, // Don't send personal data
@@ -85,7 +86,7 @@ export const captureException = (
   context?: Record<string, unknown>,
   errorInfo?: ErrorInfo
 ) => {
-  if (import.meta.env.PROD && SENTRY_DSN) {
+  if (env.PROD && SENTRY_DSN) {
     Sentry.withScope((scope) => {
       if (context) {
         scope.setExtras(context);
@@ -100,7 +101,7 @@ export const captureException = (
 };
 
 export const captureMessage = (message: string, level: 'info' | 'warning' | 'error' | 'debug' = 'info') => {
-  if (import.meta.env.PROD && SENTRY_DSN) {
+  if (env.PROD && SENTRY_DSN) {
     Sentry.captureMessage(message, level);
   }
   console[level === 'error' ? 'error' : level === 'warning' ? 'warn' : 'log'](message);
