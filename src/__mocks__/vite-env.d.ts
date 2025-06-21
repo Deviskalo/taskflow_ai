@@ -1,12 +1,4 @@
 /// <reference types="vite/client" />
+/// <reference types="../../vite-env" />
 
-interface ImportMetaEnv {
-  readonly VITE_SENTRY_DSN?: string;
-  readonly PROD: boolean;
-  readonly DEV: boolean;
-  readonly [key: string]: any;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+// Use the main ImportMetaEnv from vite-env.d.ts

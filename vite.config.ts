@@ -39,17 +39,33 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           scope: '/',
           icons: [
+            // Main app icon
             {
               src: 'pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable',
+              purpose: 'any',
             },
+            // Maskable icon for Android
+            {
+              src: 'pwa-192x192-maskable.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+            // Larger icon for splash screens
             {
               src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable',
+              purpose: 'any',
+            },
+            // Maskable large icon
+            {
+              src: 'pwa-512x512-maskable.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
             },
           ],
         },

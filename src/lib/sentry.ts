@@ -2,6 +2,20 @@ import * as Sentry from '@sentry/react';
 import { ErrorInfo } from 'react';
 import { env } from '../config/env';
 
+export interface ReportDialogOptions {
+  title?: string;
+  subtitle?: string;
+  subtitle2?: string;
+  labelName?: string;
+  labelEmail?: string;
+  labelComments?: string;
+  labelClose?: string;
+  labelSubmit?: string;
+  errorText?: string;
+  successMessage?: string;
+  eventId?: string;
+}
+
 const SENTRY_DSN = env.VITE_SENTRY_DSN;
 
 // Only initialize Sentry in production and if DSN is provided
@@ -101,8 +115,35 @@ export const captureException = (
 };
 
 export const captureMessage = (message: string, level: 'info' | 'warning' | 'error' | 'debug' = 'info') => {
-  if (env.PROD && SENTRY_DSN) {
+  if (SENTRY_DSN) {
     Sentry.captureMessage(message, level);
   }
   console[level === 'error' ? 'error' : level === 'warning' ? 'warn' : 'log'](message);
+};
+
+/**
+ * Show the Sentry report dialog
+ */
+export const showReportDialog = (options: ReportDialogOptions = {}) => {
+  if (!SENTRY_DSN) {
+    console.warn('Sentry DSN not configured. Report dialog will not be shown.');
+    return;
+  }
+
+  // Map our custom options to Sentry's expected format
+  const dialogOptions: Parameters<typeof Sentry.showReportDialog>[0] = {
+    title: options.title || 'Report Feedback',
+    subtitle: options.subtitle,
+    subtitle2: options.subtitle2,
+    labelName: options.labelName || 'Name',
+    labelEmail: options.labelEmail || 'Email',
+    labelComments: options.labelComments || 'What happened?',
+    labelClose: options.labelClose || 'Close',
+    labelSubmit: options.labelSubmit || 'Submit',
+    errorText: options.errorText || 'Please fill in all required fields',
+    successMessage: options.successMessage || 'Thank you for your feedback!',
+    eventId: options.eventId,
+  };
+
+  Sentry.showReportDialog(dialogOptions);
 };
