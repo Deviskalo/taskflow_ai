@@ -95,12 +95,19 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom', 'react-router-dom'],
             supabase: ['@supabase/supabase-js'],
           },
+          // Ensure proper module preloading
+          experimentalMinChunkSize: 10000,
         },
+        // Disable module preload for now to prevent warnings
+        preserveEntrySignatures: 'strict',
       },
       chunkSizeWarningLimit: 1000,
       target: 'esnext',
-      modulePreload: {
-        polyfill: false,
+      // Disable module preload polyfill
+      modulePreload: false,
+      // Enable dynamic imports for better code splitting
+      dynamicImportVarsOptions: {
+        exclude: [],
       },
     },
     server: (() => {
