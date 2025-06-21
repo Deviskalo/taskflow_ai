@@ -1,3 +1,4 @@
+
 interface Env {
   // Required environment variables
   VITE_APP_NAME: string;
@@ -20,27 +21,36 @@ interface Env {
   VITE_FEATURE_OFFLINE?: string;
 }
 
+// Helper function to safely get environment variables
+function getEnvValue(key: string, defaultValue: string): string;
+function getEnvValue(key: string, defaultValue?: string): string | undefined;
+function getEnvValue(key: string, defaultValue?: string): string | undefined {
+  const value = import.meta.env[key];
+  if (value === undefined) return defaultValue;
+  return value?.toString();
+}
+
 // Type-safe environment variables access
 export const env: Env = {
   // Environment modes
-  DEV: import.meta.env.DEV || process.env.NODE_ENV === 'development',
-  PROD: import.meta.env.PROD || process.env.NODE_ENV === 'production',
-  MODE: import.meta.env.MODE || process.env.NODE_ENV || 'development',
+  DEV: Boolean(import.meta.env.DEV || process.env.NODE_ENV === 'development'),
+  PROD: Boolean(import.meta.env.PROD || process.env.NODE_ENV === 'production'),
+  MODE: String(import.meta.env.MODE || process.env.NODE_ENV || 'development'),
   
   // Required
-  VITE_APP_NAME: import.meta.env.VITE_APP_NAME || 'TaskFlow AI',
-  VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION || '0.0.0',
-  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api',
+  VITE_APP_NAME: getEnvValue('VITE_APP_NAME', 'TaskFlow AI'),
+  VITE_APP_VERSION: getEnvValue('VITE_APP_VERSION', '0.0.0'),
+  VITE_API_BASE_URL: getEnvValue('VITE_API_BASE_URL', '/api'),
   
   // Optional with defaults
-  VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
-  VITE_ENABLE_ANALYTICS: import.meta.env.VITE_ENABLE_ANALYTICS || 'false',
-  VITE_DEBUG_MODE: import.meta.env.VITE_DEBUG_MODE || 'false',
-  VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT || 'development',
+  VITE_SENTRY_DSN: getEnvValue('VITE_SENTRY_DSN'),
+  VITE_ENABLE_ANALYTICS: getEnvValue('VITE_ENABLE_ANALYTICS', 'false'),
+  VITE_DEBUG_MODE: getEnvValue('VITE_DEBUG_MODE', 'false'),
+  VITE_ENVIRONMENT: getEnvValue('VITE_ENVIRONMENT', 'development'),
   
   // Feature flags
-  VITE_FEATURE_NOTIFICATIONS: import.meta.env.VITE_FEATURE_NOTIFICATIONS || 'true',
-  VITE_FEATURE_OFFLINE: import.meta.env.VITE_FEATURE_OFFLINE || 'false',
+  VITE_FEATURE_NOTIFICATIONS: getEnvValue('VITE_FEATURE_NOTIFICATIONS', 'true'),
+  VITE_FEATURE_OFFLINE: getEnvValue('VITE_FEATURE_OFFLINE', 'false'),
 };
 
 // Runtime validation of required environment variables
