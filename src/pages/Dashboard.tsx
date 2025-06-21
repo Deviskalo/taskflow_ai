@@ -1,25 +1,54 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, CheckSquare, LogOut, User, Bot, Sparkles, X, Bell, Settings, BarChart3, FileText, Zap } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useTasks } from '../hooks/useTasks';
-import { useNotifications } from '../hooks/useNotifications';
-import { TaskStats } from '../components/TaskStats';
-import { TaskFilters } from '../components/TaskFilters';
-import { TaskList } from '../components/TaskList';
-import { SmartTaskForm } from '../components/SmartTaskForm';
-import { AIAssistant } from '../components/AIAssistant';
-import { NotificationCenter } from '../components/NotificationCenter';
-import { TaskAnalytics } from '../components/TaskAnalytics';
-import { TaskTemplates } from '../components/TaskTemplates';
-import { QuickActions } from '../components/QuickActions';
-import { BottomNavigation } from '../components/BottomNavigation';
-import { MobileProfile } from '../components/MobileProfile';
-import { Task, TaskStatus } from '../types/Task';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Plus,
+  CheckSquare,
+  LogOut,
+  User,
+  Bot,
+  Bell,
+  BarChart3,
+  FileText,
+  Zap,
+  X,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useTasks } from "../hooks/useTasks";
+import { useNotifications } from "../hooks/useNotifications";
+import { TaskStats } from "../components/TaskStats";
+import { TaskFilters } from "../components/TaskFilters";
+import { TaskList } from "../components/TaskList";
+import { SmartTaskForm } from "../components/SmartTaskForm";
+import { AIAssistant } from "../components/AIAssistant";
+import { NotificationCenter } from "../components/NotificationCenter";
+import { TaskAnalytics } from "../components/TaskAnalytics";
+import { TaskTemplates } from "../components/TaskTemplates";
+import { QuickActions } from "../components/QuickActions";
+import { BottomNavigation } from "../components/BottomNavigation";
+import { Profile } from "../components/Profile";
+import { Task } from "../types/Task";
+import { Button } from "@/components/ui/button";
+
+type TabType = "dashboard" | "analytics" | "notifications" | "profile";
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, userProfile, signOut } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+
+  // Handle window resize for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobileView = window.innerWidth < 768;
+      setIsMobile(isMobileView);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Task management
   const {
     tasks,
     filters,
@@ -29,617 +58,425 @@ export const Dashboard: React.FC = () => {
     deleteTask,
     updateTaskStatus,
     taskStats,
-    loading
   } = useTasks();
 
-  const { 
+  // Notifications
+  const {
     notifications,
-    notificationsEnabled, 
-    requestPermission, 
-    showNotificationBanner, 
+    notificationsEnabled,
+    requestPermission,
+    showNotificationBanner,
     dismissNotificationBanner,
     removeNotification,
-    clearAllNotifications
   } = useNotifications(tasks);
 
+  // UI state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  // Removed unused showNotifications state
   const [editingTask, setEditingTask] = useState<Task | undefined>();
-  const [aiTaskSuggestion, setAiTaskSuggestion] = useState<any>(null);
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  
-  // Mobile navigation state
-  const [mobileActiveTab, setMobileActiveTab] = useState<'dashboard' | 'analytics' | 'notifications' | 'profile'>('dashboard');
+  const [selectedTasks] = useState<string[]>([]);
 
+  // Handlers
   const handleAddTask = () => {
     setEditingTask(undefined);
-    setAiTaskSuggestion(null);
     setIsFormOpen(true);
   };
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
-    setAiTaskSuggestion(null);
     setIsFormOpen(true);
-  };
-
-  const handleSaveTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-    if (editingTask) {
-      await updateTask(editingTask.id, taskData);
-    } else {
-      await addTask(taskData);
-    }
-    setIsFormOpen(false);
-    setEditingTask(undefined);
-    setAiTaskSuggestion(null);
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      await deleteTask(id);
-    }
   };
 
   const handleTaskClick = (task: Task) => {
     navigate(`/task/${task.id}`);
   };
 
-  const handleAITaskSuggestion = (suggestion: any) => {
-    setAiTaskSuggestion(suggestion);
-    setEditingTask(undefined);
-    setIsFormOpen(true);
-    setIsAIAssistantOpen(false);
-  };
-
-  const handleUseTemplate = (template: any) => {
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + template.defaultDueInDays);
-    
-    const templateTask = {
-      title: template.title,
-      description: template.description,
-      due_date: dueDate.toISOString().split('T')[0],
-      due_time: '09:00',
-      status: 'pending' as TaskStatus
-    };
-
-    setAiTaskSuggestion(templateTask);
-    setEditingTask(undefined);
-    setIsFormOpen(true);
-    setShowTemplates(false);
-  };
-
-  // Quick Actions handlers
   const handleSelectTask = (taskId: string) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) 
-        ? prev.filter(id => id !== taskId)
-        : [...prev, taskId]
-    );
+    // No-op since we're not using task selection for now
+    console.log("Task selected:", taskId);
   };
 
-  const handleSelectAll = () => {
-    setSelectedTasks(tasks.map(task => task.id));
-  };
-
-  const handleClearSelection = () => {
-    setSelectedTasks([]);
-  };
-
-  const handleBulkStatusChange = async (taskIds: string[], status: TaskStatus) => {
-    for (const taskId of taskIds) {
-      await updateTaskStatus(taskId, status);
+  const handleSaveTask = async (
+    taskData: Omit<Task, "id" | "created_at" | "updated_at" | "user_id"> & {
+      due_date?: string;
     }
-  };
-
-  const handleBulkDelete = async (taskIds: string[]) => {
-    for (const taskId of taskIds) {
-      await deleteTask(taskId);
+  ) => {
+    if (editingTask) {
+      await updateTask(editingTask.id, taskData);
+    } else {
+      await addTask({
+        ...taskData,
+        due_date: taskData.due_date || new Date().toISOString(),
+        status: taskData.status || "pending",
+      });
     }
+    setIsFormOpen(false);
+    setEditingTask(undefined);
   };
 
-  const handleBulkReschedule = async (taskIds: string[], days: number) => {
-    for (const taskId of taskIds) {
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        const newDueDate = new Date(task.due_date);
-        newDueDate.setDate(newDueDate.getDate() + days);
-        await updateTask(taskId, { due_date: newDueDate.toISOString() });
-      }
+  const handleDeleteTask = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      await deleteTask(id);
     }
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate("/login");
   };
 
-  // Mobile tab change handler
-  const handleMobileTabChange = (tab: 'dashboard' | 'analytics' | 'notifications' | 'profile') => {
-    setMobileActiveTab(tab);
-    
-    // Close any open modals when switching tabs
-    setShowAnalytics(false);
-    setShowNotifications(false);
-    
-    // Set the appropriate view based on tab
-    if (tab === 'analytics') {
-      setShowAnalytics(true);
-    } else if (tab === 'notifications') {
-      setShowNotifications(true);
-    }
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg inline-block mb-4 animate-pulse">
-            <CheckSquare className="w-8 h-8 text-white" />
-          </div>
-          <p className="text-gray-600">Loading your tasks...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleBulkStatusChange = (
+    taskIds: string[],
+    status: "pending" | "in-progress" | "completed"
+  ) => {
+    taskIds.forEach((id) => updateTaskStatus(id, status));
+  };
 
-  const displayName = userProfile?.name || user?.email?.split('@')[0] || 'User';
+  const handleBulkDelete = (taskIds: string[]) => {
+    taskIds.forEach((id) => handleDeleteTask(id));
+  };
 
-  // Mobile view content based on active tab
-  const renderMobileContent = () => {
-    switch (mobileActiveTab) {
-      case 'analytics':
+  // Render different content based on active tab
+  const renderContent = () => {
+    switch (activeTab) {
+      case "analytics":
         return (
-          <div className="p-4 pb-20">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Analytics</h2>
-              <p className="text-gray-600">Your productivity insights</p>
-            </div>
+          <div className="p-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Analytics</h2>
+            <p className="text-gray-600 mb-6">Your productivity insights</p>
             <TaskAnalytics tasks={tasks} />
           </div>
         );
-      
-      case 'notifications':
-        return (
-          <div className="p-4 pb-20">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Notifications</h2>
-              <p className="text-gray-600">Stay updated with your tasks</p>
-            </div>
-            
-            {/* Notification Banner */}
-            {showNotificationBanner && !notificationsEnabled && (
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6">
-                <div className="text-center">
-                  <div className="bg-white bg-opacity-20 p-2 rounded-lg inline-block mb-3">
-                    <Bell className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-semibold mb-2">Enable Notifications</h3>
-                  <p className="text-blue-100 text-sm mb-4">Get alerts for overdue tasks and deadlines</p>
-                  <div className="flex flex-col space-y-2">
-                    <button
-                      onClick={requestPermission}
-                      className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors duration-200"
-                    >
-                      Enable Notifications
-                    </button>
-                    <button
-                      onClick={dismissNotificationBanner}
-                      className="text-blue-200 hover:text-white transition-colors duration-200 text-sm"
-                    >
-                      Maybe Later
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Notifications List */}
-            <div className="space-y-4">
-              {notifications.length === 0 ? (
-                <div className="text-center py-12">
-                  <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
-                  <p className="text-gray-500">You're all caught up!</p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
-                      {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
-                    </span>
-                    <button
-                      onClick={clearAllNotifications}
-                      className="text-sm text-red-600 hover:text-red-700"
-                    >
-                      Clear All
-                    </button>
-                  </div>
-                  
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 rounded-xl border ${
-                        notification.type === 'error' ? 'bg-red-50 border-red-200' :
-                        notification.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                        notification.type === 'success' ? 'bg-green-50 border-green-200' :
-                        'bg-blue-50 border-blue-200'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900 text-sm mb-1">
-                            {notification.title}
-                          </h4>
-                          <p className="text-gray-600 text-sm mb-2">
-                            {notification.message}
-                          </p>
-                          <p className="text-gray-400 text-xs">
-                            {notification.timestamp.toLocaleString()}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => removeNotification(notification.id)}
-                          className="p-1 text-gray-400 hover:text-red-600 ml-2"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </>
+      case "notifications":
+        return (
+          <div className="p-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Notifications
+            </h2>
+            <p className="text-gray-600 mb-6">Stay updated with your tasks</p>
+            <NotificationCenter
+              notifications={notifications}
+              onClose={() => {
+                /* No-op since we don't have a showNotifications state */
+              }}
+              onRemove={(id) => removeNotification(id)}
+            />
+          </div>
+        );
+
+      case "profile":
+        return <Profile onSignOut={handleSignOut} isMobile={isMobile} />;
+
+      case "dashboard":
+      default:
+        return (
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Your Tasks</h1>
+                <p className="text-gray-600">
+                  Manage your daily tasks and activities
+                </p>
+              </div>
+              {!isMobile && (
+                <button
+                  onClick={handleAddTask}
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Add Task</span>
+                </button>
               )}
             </div>
-          </div>
-        );
-      
-      case 'profile':
-        return (
-          <div className="pb-20">
-            <MobileProfile onSignOut={handleSignOut} />
-          </div>
-        );
-      
-      default: // dashboard
-        return (
-          <div className="pb-20">
-            {/* Mobile Header */}
-            <div className="p-4 bg-white border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-lg shadow-lg">
-                    <CheckSquare className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-bold text-gray-900">TaskFlow AI</h1>
-                    <p className="text-sm text-gray-600">Hi, {displayName}!</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowTemplates(true)}
-                    className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"
-                  >
-                    <FileText className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setIsAIAssistantOpen(true)}
-                    className="p-2 bg-purple-50 text-purple-600 rounded-lg"
-                  >
-                    <Bot className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setShowQuickActions(true)}
-                    className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"
-                  >
-                    <Zap className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
 
-            {/* Mobile Notification Banner */}
-            {showNotificationBanner && !notificationsEnabled && (
-              <div className="mx-4 mt-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-xl shadow-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Bell className="w-5 h-5" />
-                    <div>
-                      <h3 className="font-semibold text-sm">Enable Notifications</h3>
-                      <p className="text-blue-100 text-xs">Get task alerts</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={requestPermission}
-                      className="bg-white text-blue-600 px-3 py-1 rounded text-xs font-medium"
-                    >
-                      Enable
-                    </button>
-                    <button
-                      onClick={dismissNotificationBanner}
-                      className="text-blue-200"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Mobile Task Stats */}
-            <div className="p-4">
+            <TaskFilters filters={filters} onFiltersChange={setFilters} />
+            <div className="my-6">
               <TaskStats stats={taskStats} />
             </div>
-
-            {/* Mobile Filters */}
-            <div className="px-4">
-              <TaskFilters filters={filters} onFiltersChange={setFilters} />
-            </div>
-
-            {/* Mobile Task List */}
-            <div className="px-4">
-              <TaskList
-                tasks={tasks}
-                onEditTask={handleEditTask}
-                onDeleteTask={handleDeleteTask}
-                onStatusChange={updateTaskStatus}
-                onTaskClick={handleTaskClick}
-              />
-            </div>
+            <TaskList
+              tasks={tasks}
+              onEditTask={handleEditTask}
+              onDeleteTask={handleDeleteTask}
+              onStatusChange={updateTaskStatus}
+              onTaskClick={handleTaskClick}
+            />
           </div>
         );
     }
   };
 
+  const displayName = userProfile?.name || user?.email?.split("@")[0] || "User";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Desktop View */}
-      <div className="hidden md:block">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* Notification Banner */}
-          {showNotificationBanner && !notificationsEnabled && (
-            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 rounded-xl shadow-lg mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                    <Bell className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Stay on top of your tasks!</h3>
-                    <p className="text-blue-100 text-sm">Enable notifications to get alerts for overdue tasks and deadlines.</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={requestPermission}
-                    className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors duration-200"
-                  >
-                    Enable Notifications
-                  </button>
-                  <button
-                    onClick={dismissNotificationBanner}
-                    className="text-blue-200 hover:text-white transition-colors duration-200"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
+      {/* Mobile Header */}
+      <div className="md:hidden bg-white border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-lg shadow-lg">
+              <CheckSquare className="w-6 h-6 text-white" />
             </div>
-          )}
-
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg">
-                <CheckSquare className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                  TaskFlow AI
-                </h1>
-                <p className="text-gray-600">Welcome back, {displayName}!</p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              {/* Analytics Toggle */}
-              <button
-                onClick={() => setShowAnalytics(!showAnalytics)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg shadow-sm transition-all duration-200 ${
-                  showAnalytics 
-                    ? 'bg-purple-600 text-white shadow-md' 
-                    : 'bg-white text-gray-700 hover:shadow-md'
-                }`}
-              >
-                <BarChart3 className="w-5 h-5" />
-                <span>Analytics</span>
-              </button>
-
-              {/* Notification Bell */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 relative"
-                >
-                  <Bell className="w-5 h-5 text-gray-400" />
-                  {notifications.length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {notifications.length}
-                    </span>
-                  )}
-                </button>
-                
-                {showNotifications && (
-                  <NotificationCenter
-                    notifications={notifications}
-                    onClose={() => setShowNotifications(false)}
-                    onRemove={removeNotification}
-                    onClearAll={clearAllNotifications}
-                  />
-                )}
-              </div>
-
-              {/* User Profile */}
-              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm">
-                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-lg">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-900">{displayName}</p>
-                  <p className="text-xs text-gray-500">{userProfile?.email || user?.email}</p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSignOut}
-                className="flex items-center space-x-2 bg-white text-gray-700 px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Sign Out</span>
-              </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">TaskFlow AI</h1>
+              <p className="text-sm text-gray-600">Hi, {displayName}!</p>
             </div>
           </div>
 
-          {/* Analytics Section */}
-          {showAnalytics && (
-            <div className="mb-8">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-2 rounded-lg">
-                      <BarChart3 className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Task Analytics</h2>
-                      <p className="text-gray-600">Insights into your productivity patterns</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowAnalytics(false)}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <TaskAnalytics tasks={tasks} />
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-center space-x-4 mb-8">
-            <button
-              onClick={handleAddTask}
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 flex items-center space-x-3"
-            >
-              <Plus className="w-6 h-6" />
-              <span>Add New Task</span>
-            </button>
-            
-            <button
+          <div className="flex items-center space-x-2">
+            <Button
               onClick={() => setShowTemplates(true)}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 flex items-center space-x-3"
+              className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"
             >
-              <FileText className="w-6 h-6" />
-              <span>Templates</span>
-            </button>
-            
-            <button
+              <FileText className="w-5 h-5" />
+            </Button>
+            <Button
               onClick={() => setIsAIAssistantOpen(true)}
-              className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 flex items-center space-x-3"
+              className="p-2 bg-purple-50 text-purple-600 rounded-lg"
             >
-              <Bot className="w-6 h-6" />
-              <span>AI Assistant</span>
-              <Sparkles className="w-4 h-4" />
-            </button>
-
-            <button
+              <Bot className="w-5 h-5" />
+            </Button>
+            <Button
               onClick={() => setShowQuickActions(true)}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 flex items-center space-x-3"
+              className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"
             >
-              <Zap className="w-6 h-6" />
-              <span>Quick Actions</span>
-            </button>
+              <Zap className="w-5 h-5" />
+            </Button>
           </div>
-
-          {/* Task Stats */}
-          <TaskStats stats={taskStats} />
-
-          {/* Filters */}
-          <TaskFilters filters={filters} onFiltersChange={setFilters} />
-
-          {/* Task List */}
-          <TaskList
-            tasks={tasks}
-            onEditTask={handleEditTask}
-            onDeleteTask={handleDeleteTask}
-            onStatusChange={updateTaskStatus}
-            onTaskClick={handleTaskClick}
-          />
         </div>
       </div>
 
-      {/* Mobile View */}
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex h-screen">
+        <div className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col">
+          <div className="flex items-center space-x-3 mb-8">
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-lg shadow-lg">
+              <CheckSquare className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">TaskFlow AI</h1>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center mb-6 gap-1">
+            <Button
+              onClick={() => setShowTemplates(true)}
+              className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+              size="icon"
+              title="Templates"
+            >
+              <FileText className="w-4 h-4" />
+            </Button>
+            <Button
+              onClick={() => setIsAIAssistantOpen(true)}
+              className="p-1.5 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors"
+              size="icon"
+              title="AI Assistant"
+            >
+              <Bot className="w-4 h-4" />
+            </Button>
+            <Button
+              onClick={() => setShowQuickActions(true)}
+              className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
+              size="icon"
+              title="Quick Actions"
+            >
+              <Zap className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <nav className="space-y-1.5 flex-1">
+            <Button
+              onClick={() => handleTabChange("dashboard")}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg ${
+                activeTab === "dashboard"
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <CheckSquare className="w-5 h-5 flex-shrink-0" />
+                <span>Tasks</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => handleTabChange("analytics")}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg ${
+                activeTab === "analytics"
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <BarChart3 className="w-5 h-5 flex-shrink-0" />
+                <span>Analytics</span>
+              </div>
+            </Button>
+
+            <Button
+              onClick={() => handleTabChange("notifications")}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg ${
+                activeTab === "notifications"
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <Bell className="w-5 h-5 flex-shrink-0" />
+                <span>Notifications</span>
+              </div>
+              {notifications.length > 0 && (
+                <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
+                  {notifications.length}
+                </span>
+              )}
+            </Button>
+
+            <Button
+              onClick={() => handleTabChange("profile")}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg ${
+                activeTab === "profile"
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <User className="w-5 h-5 flex-shrink-0" />
+                <span>Profile</span>
+              </div>
+            </Button>
+          </nav>
+
+          <div className="pt-6 border-t border-gray-200">
+            <Button
+              onClick={handleSignOut}
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Sign Out</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto">{renderContent()}</div>
+      </div>
+
+      {/* Mobile Content */}
       <div className="md:hidden">
-        {renderMobileContent()}
-        
+        {renderContent()}
+
         {/* Bottom Navigation */}
         <BottomNavigation
-          activeTab={mobileActiveTab}
-          onTabChange={handleMobileTabChange}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
           onAddTask={handleAddTask}
           notificationCount={notifications.length}
         />
       </div>
 
-      {/* Modals (shared between desktop and mobile) */}
+      {/* Modals */}
       <SmartTaskForm
         task={editingTask}
         isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditingTask(undefined);
-          setAiTaskSuggestion(null);
-        }}
+        onClose={() => setIsFormOpen(false)}
         onSave={handleSaveTask}
-        aiSuggestion={aiTaskSuggestion}
       />
 
       <AIAssistant
         tasks={tasks}
-        onTaskSuggestion={handleAITaskSuggestion}
         isOpen={isAIAssistantOpen}
         onClose={() => setIsAIAssistantOpen(false)}
+        onTaskSuggestion={(suggestion) => {
+          // Handle AI task suggestion
+          console.log("AI Task Suggestion:", suggestion);
+        }}
       />
 
       <TaskTemplates
         isOpen={showTemplates}
         onClose={() => setShowTemplates(false)}
-        onUseTemplate={handleUseTemplate}
+        onUseTemplate={(template) => {
+          handleSaveTask({
+            ...template,
+            status: "pending" as const,
+            due_date: new Date().toISOString(),
+          });
+        }}
       />
 
       <QuickActions
         tasks={tasks}
-        selectedTasks={selectedTasks}
-        onSelectTask={handleSelectTask}
-        onSelectAll={handleSelectAll}
-        onClearSelection={handleClearSelection}
+        isOpen={showQuickActions}
+        onClose={() => setShowQuickActions(false)}
+        onSelectAll={() => {}}
+        onClearSelection={() => {}}
         onBulkStatusChange={handleBulkStatusChange}
         onBulkDelete={handleBulkDelete}
-        onBulkReschedule={handleBulkReschedule}
-        isOpen={showQuickActions}
-        onClose={() => {
-          setShowQuickActions(false);
-          setSelectedTasks([]);
+        onBulkReschedule={(taskIds, days) => {
+          // Implement bulk reschedule logic here
+          console.log(`Rescheduling tasks ${taskIds} by ${days} days`);
         }}
+        selectedTasks={selectedTasks}
+        onSelectTask={handleSelectTask}
       />
+
+      {/* Notification Banner */}
+      {showNotificationBanner && !notificationsEnabled && (
+        <div
+          className={`${isMobile ? "fixed bottom-16 left-0 right-0 border-t border-gray-200" : "fixed bottom-6 right-6 w-80 rounded-lg shadow-lg"} bg-white p-4 z-50`}
+        >
+          <div className="flex items-start">
+            <div className="bg-blue-100 p-2 rounded-full">
+              <Bell className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-gray-900">
+                Enable Notifications
+              </h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Get notified about important updates and deadlines.
+              </p>
+              <div
+                className={`mt-3 flex ${isMobile ? "space-x-3" : "space-x-2"}`}
+              >
+                <Button
+                  onClick={requestPermission}
+                  variant="default"
+                  size={isMobile ? "sm" : "default"}
+                  className="text-sm font-medium"
+                >
+                  Enable
+                </Button>
+                <Button
+                  onClick={dismissNotificationBanner}
+                  variant="outline"
+                  size={isMobile ? "sm" : "default"}
+                  className="text-sm font-medium"
+                >
+                  {isMobile ? "Dismiss" : "Maybe Later"}
+                </Button>
+              </div>
+            </div>
+            {!isMobile && (
+              <button
+                onClick={dismissNotificationBanner}
+                className="text-gray-400 hover:text-gray-500 ml-2"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
